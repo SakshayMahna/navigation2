@@ -180,6 +180,16 @@ protected:
   std::unique_ptr<nav2_graceful_controller::PathHandler> path_handler_;
   std::unique_ptr<nav2_graceful_controller::ParameterHandler> param_handler_;
   std::unique_ptr<nav2_graceful_controller::SmoothControlLaw> control_law_;
+
+  // Variables to commit to given spiral
+  struct {
+    int counter = 0;
+    geometry_msgs::msg::TwistStamped cmd_vel;
+    geometry_msgs::msg::PoseStamped target_pose;
+    nav_msgs::msg::Path transformed_plan;
+    geometry_msgs::msg::TransformStamped costmap_transform;
+    bool reversing;
+  } committed_variables;
 };
 
 }  // namespace nav2_graceful_controller

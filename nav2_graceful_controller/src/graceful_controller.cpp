@@ -115,6 +115,36 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
   const geometry_msgs::msg::Twist & /*velocity*/,
   nav2_core::GoalChecker * goal_checker)
 {
+  if (committed_variables.counter < 5) {
+    committed_variables.counter++;
+
+    // Compute distance to goal as the path's integrated distance to account for path curvatures
+    double dist_to_goal = nav2_util::geometry_utils::calculate_path_length(committed_variables.transformed_plan);
+
+    // If we've reached the XY goal tolerance, just rotate
+    if (!(dist_to_goal < goal_dist_tolerance_ || goal_reached_)) {
+      // Check collision
+      nav_msgs::msg::Path local_plan;
+      if (simulateTrajectory(committed_variables.target_pose, committed_variables.costmap_transform, 
+                            local_plan, committed_variables.cmd_vel, committed_variables.reversing)) {
+        // Successfully simulated to target_pose - compute velocity at this moment
+        // Publish the selected target_pose
+        motion_target_pub_->publish(committed_variables.target_pose);
+        // Publish marker for slowdown radius around motion target for debugging / visualization
+        auto slowdown_marker = nav2_graceful_controller::createSlowdownMarker(
+          committed_variables.target_pose, params_->slowdown_radius);
+        slowdown_pub_->publish(slowdown_marker);
+        // Publish the local plan
+        local_plan.header = committed_variables.transformed_plan.header;
+        local_plan_pub_->publish(local_plan);
+        // Successfully found velocity command
+        return committed_variables.cmd_vel;
+      }
+    }
+  }
+
+  committed_variables.counter = 0;
+
   std::lock_guard<std::mutex> param_lock(param_handler_->getMutex());
 
   geometry_msgs::msg::TwistStamped cmd_vel;
@@ -245,6 +275,13 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
       local_plan.header = transformed_plan.header;
       local_plan_pub_->publish(local_plan);
       // Successfully found velocity command
+
+      committed_variables.cmd_vel = cmd_vel;
+      committed_variables.target_pose = target_pose;
+      committed_variables.transformed_plan = transformed_plan;
+      committed_variables.costmap_transform = costmap_transform;
+      committed_variables.reversing = reversing;
+
       return cmd_vel;
     }
   }
