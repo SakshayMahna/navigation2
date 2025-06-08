@@ -64,23 +64,21 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
   auto goal_pose_it = poses.begin();
   double d = 0.0;
 
-  if (!poses.empty()) {
-    bool pose_found = false;
-    for (size_t i = 1; i < poses.size(); i++) {
-      const auto & prev_pose = poses[i - 1].pose.position;
-      const auto & curr_pose = poses[i].pose.position;
+  bool pose_found = false;
+  for (size_t i = 1; i < poses.size(); i++) {
+    const auto & prev_pose = poses[i - 1].pose.position;
+    const auto & curr_pose = poses[i].pose.position;
 
-      d += std::hypot(curr_pose.x - prev_pose.x, curr_pose.y - prev_pose.y);
-      if (d >= lookahead_dist) {
-        goal_pose_it = poses.begin() + i;
-        pose_found = true;
-        break;
-      }
+    d += std::hypot(curr_pose.x - prev_pose.x, curr_pose.y - prev_pose.y);
+    if (d >= lookahead_dist) {
+      goal_pose_it = poses.begin() + i - 1;
+      pose_found = true;
+      break;
     }
+  }
 
-    if (!pose_found) {
-      goal_pose_it = poses.end();
-    }
+  if (!pose_found) {
+    goal_pose_it = poses.end();
   }
 
   // If the no pose is not far enough, take the last pose

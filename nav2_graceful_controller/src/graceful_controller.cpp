@@ -197,56 +197,47 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
   }
 
   // Find a valid target pose and its trajectory
-  bool valid_target_pose_found = false;
   nav_msgs::msg::Path local_plan;
+  bool valid_target_pose_found;
+  geometry_msgs::msg::PoseStamped target_pose;
 
-  // Calculate target pose through lookahead interpolation to get most accurate
-  // lookahead point, if possible
-  double dist_to_target = params_->max_lookahead;
-  geometry_msgs::msg::PoseStamped target_pose = nav2_util::getLookAheadPoint(
-    dist_to_target, transformed_plan, params_->interpolate_after_goal);
+  double dist_to_target;
+  std::vector<double> target_distances;
+  computeDistanceAlongPath(transformed_plan.poses, target_distances);
 
-  valid_target_pose_found = validateTargetPose(
-    target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel);
-
-  if (!valid_target_pose_found) {
-    // If target pose through interpolation is not valid
-    // Work back from the end of plan to find valid target pose
-    // Precompute distance to candidate poses
-    std::vector<double> target_distances;
-    computeDistanceAlongPath(transformed_plan.poses, target_distances);
-
-    for (int i = transformed_plan.poses.size() - 1; i >= 0; --i) {
+  for (int i = transformed_plan.poses.size(); i >= 0; --i) {
+    if (i == static_cast<int>(transformed_plan.poses.size())) {
+      // Calculate target pose through lookahead interpolation to get most accurate
+      // lookahead point, if possible
+      dist_to_target = params_->max_lookahead;
+      target_pose = nav2_util::getLookAheadPoint(
+        dist_to_target, transformed_plan, params_->interpolate_after_goal);
+    } else {
       // Underlying control law needs a single target pose, which should:
       //  * Be as far away as possible from the robot (for smoothness)
       //  * But no further than the max_lookahed_ distance
       //  * Be feasible to reach in a collision free manner
-      target_pose = transformed_plan.poses[i];
       dist_to_target = target_distances[i];
-
-      valid_target_pose_found = validateTargetPose(
-        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel);
-      if(valid_target_pose_found) {
-        break;
-      }
+      target_pose = transformed_plan.poses[i];
     }
-  } else {
-    valid_target_pose_found = true;
-  }
 
-  // Compute velocity at this moment if valid target pose is found
-  if (valid_target_pose_found) {
-    // Publish the selected target_pose
-    motion_target_pub_->publish(target_pose);
-    // Publish marker for slowdown radius around motion target for debugging / visualization
-    auto slowdown_marker = nav2_graceful_controller::createSlowdownMarker(
-      target_pose, params_->slowdown_radius);
-    slowdown_pub_->publish(slowdown_marker);
-    // Publish the local plan
-    local_plan.header = transformed_plan.header;
-    local_plan_pub_->publish(local_plan);
-    // Successfully found velocity command
-    return cmd_vel;
+    valid_target_pose_found = validateTargetPose(
+        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel);
+
+    // Compute velocity at this moment if valid target pose is found
+    if (valid_target_pose_found) {
+      // Publish the selected target_pose
+      motion_target_pub_->publish(target_pose);
+      // Publish marker for slowdown radius around motion target for debugging / visualization
+      auto slowdown_marker = nav2_graceful_controller::createSlowdownMarker(
+        target_pose, params_->slowdown_radius);
+      slowdown_pub_->publish(slowdown_marker);
+      // Publish the local plan
+      local_plan.header = transformed_plan.header;
+      local_plan_pub_->publish(local_plan);
+      // Successfully found velocity command
+      return cmd_vel;
+    }
   }
 
   throw nav2_core::NoValidControl("Collision detected in trajectory");
