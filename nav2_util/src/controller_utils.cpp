@@ -71,7 +71,7 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
 
     d += std::hypot(curr_pose.x - prev_pose.x, curr_pose.y - prev_pose.y);
     if (d >= lookahead_dist) {
-      goal_pose_it = poses.begin() + i - 1;
+      goal_pose_it = poses.begin() + i;
       pose_found = true;
       break;
     }
