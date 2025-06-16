@@ -54,7 +54,7 @@ geometry_msgs::msg::Point circleSegmentIntersection(
 }
 
 geometry_msgs::msg::PoseStamped getLookAheadPoint(
-  const double & lookahead_dist,
+  double & lookahead_dist,
   const nav_msgs::msg::Path & transformed_plan,
   const bool interpolate_after_goal)
 {
@@ -121,6 +121,7 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
 
       return interpolated_pose;
     } else {
+      lookahead_dist = d;
       goal_pose_it = std::prev(transformed_plan.poses.end());
     }
   } else if (goal_pose_it != transformed_plan.poses.begin()) {

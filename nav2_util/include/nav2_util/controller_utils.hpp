@@ -46,7 +46,7 @@ geometry_msgs::msg::Point circleSegmentIntersection(
 * @return Lookahead point
 */
 geometry_msgs::msg::PoseStamped getLookAheadPoint(
-  const double &, const nav_msgs::msg::Path &,
+  double &, const nav_msgs::msg::Path &,
   const bool interpolate_after_goal = false);
 
 }  // namespace nav2_util

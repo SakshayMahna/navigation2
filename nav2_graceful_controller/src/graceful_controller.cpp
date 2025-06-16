@@ -198,7 +198,6 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
 
   // Find a valid target pose and its trajectory
   nav_msgs::msg::Path local_plan;
-  bool valid_target_pose_found;
   geometry_msgs::msg::PoseStamped target_pose;
 
   double dist_to_target;
@@ -221,11 +220,9 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
       target_pose = transformed_plan.poses[i];
     }
 
-    valid_target_pose_found = validateTargetPose(
-        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel);
-
     // Compute velocity at this moment if valid target pose is found
-    if (valid_target_pose_found) {
+    if (validateTargetPose(
+        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel)) {
       // Publish the selected target_pose
       motion_target_pub_->publish(target_pose);
       // Publish marker for slowdown radius around motion target for debugging / visualization

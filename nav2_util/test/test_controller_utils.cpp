@@ -168,13 +168,14 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   double EPSILON = std::numeric_limits<float>::epsilon();
 
   nav_msgs::msg::Path path;
+  double lookahead_dist = 10.0;
   // More than 2 poses
   path.poses.resize(4);
   path.poses[0].pose.position.x = 0.0;
   path.poses[1].pose.position.x = 1.0;
   path.poses[2].pose.position.x = 2.0;
   path.poses[3].pose.position.x = 3.0;
-  auto pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  auto pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, 0.0, EPSILON);
 
@@ -183,7 +184,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses.resize(2);
   path.poses[0].pose.position.x = 2.0;
   path.poses[1].pose.position.x = 3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, 0.0, EPSILON);
 
@@ -194,7 +195,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = 2.0;
   path.poses[1].pose.position.x = 3.0;
   path.poses[1].pose.position.y = 3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(45.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(45.0 * M_PI / 180) * 10.0, EPSILON);
 
@@ -205,7 +206,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = 2.0;
   path.poses[1].pose.position.x = 0.0;
   path.poses[1].pose.position.y = 3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(90.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(90.0 * M_PI / 180) * 10.0, EPSILON);
 
@@ -216,7 +217,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = 2.0;
   path.poses[1].pose.position.x = -3.0;
   path.poses[1].pose.position.y = 3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(135.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(135.0 * M_PI / 180) * 10.0, EPSILON);
 
@@ -225,7 +226,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses.resize(2);
   path.poses[0].pose.position.x = -2.0;
   path.poses[1].pose.position.x = -3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, -10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, 0.0, EPSILON);
 
@@ -236,7 +237,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = -2.0;
   path.poses[1].pose.position.x = -3.0;
   path.poses[1].pose.position.y = -3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(-135.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(-135.0 * M_PI / 180) * 10.0, EPSILON);
 
@@ -247,7 +248,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = -2.0;
   path.poses[1].pose.position.x = 0.0;
   path.poses[1].pose.position.y = -3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(-90.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(-90.0 * M_PI / 180) * 10.0, EPSILON);
 
@@ -258,7 +259,7 @@ TEST(InterpolationUtils, lookaheadExtrapolation)
   path.poses[0].pose.position.y = -2.0;
   path.poses[1].pose.position.x = 3.0;
   path.poses[1].pose.position.y = -3.0;
-  pt = nav2_util::getLookAheadPoint(10.0, path, true);
+  pt = nav2_util::getLookAheadPoint(lookahead_dist, path, true);
   EXPECT_NEAR(pt.pose.position.x, cos(-45.0 * M_PI / 180) * 10.0, EPSILON);
   EXPECT_NEAR(pt.pose.position.y, sin(-45.0 * M_PI / 180) * 10.0, EPSILON);
 }
