@@ -209,8 +209,9 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
       // Calculate target pose through lookahead interpolation to get most accurate
       // lookahead point, if possible
       dist_to_target = params_->max_lookahead;
-      target_pose = nav2_util::getLookAheadPoint(
-        dist_to_target, transformed_plan, params_->interpolate_after_goal);
+      // Interpolate after goal false for graceful controller
+      // Requires interpolating the orientation which is not yet implemented
+      target_pose = nav2_util::getLookAheadPoint(dist_to_target, transformed_plan, false);
     } else {
       // Underlying control law needs a single target pose, which should:
       //  * Be as far away as possible from the robot (for smoothness)

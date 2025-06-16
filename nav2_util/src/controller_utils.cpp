@@ -102,22 +102,9 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
       const auto interpolated_position = circleSegmentIntersection(
         last_pose_it->pose.position, projected_position, lookahead_dist);
 
-      // Calculate orientation towards interpolated position
-      // Convert yaw to quaternion
-      double interpolated_yaw = atan2(
-        interpolated_position.y - last_pose_it->pose.position.y,
-        interpolated_position.x - last_pose_it->pose.position.x);
-
-      geometry_msgs::msg::Quaternion interpolated_orientation;
-      interpolated_orientation.x = 0.0;
-      interpolated_orientation.y = 0.0;
-      interpolated_orientation.z = sin(interpolated_yaw / 2.0);
-      interpolated_orientation.w = cos(interpolated_yaw / 2.0);
-
       geometry_msgs::msg::PoseStamped interpolated_pose;
       interpolated_pose.header = last_pose_it->header;
       interpolated_pose.pose.position = interpolated_position;
-      interpolated_pose.pose.orientation = interpolated_orientation;
 
       return interpolated_pose;
     } else {
