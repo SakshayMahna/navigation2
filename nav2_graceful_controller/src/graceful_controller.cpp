@@ -223,7 +223,8 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
 
     // Compute velocity at this moment if valid target pose is found
     if (validateTargetPose(
-        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel)) {
+        target_pose, dist_to_target, dist_to_goal, local_plan, costmap_transform, cmd_vel))
+    {
       // Publish the selected target_pose
       motion_target_pub_->publish(target_pose);
       // Publish marker for slowdown radius around motion target for debugging / visualization
