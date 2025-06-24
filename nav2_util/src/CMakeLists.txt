@@ -1,10 +1,7 @@
 add_library(${library_name} SHARED
   costmap.cpp
-  node_utils.cpp
   lifecycle_service_client.cpp
   string_utils.cpp
-  lifecycle_utils.cpp
-  lifecycle_node.cpp
   robot_utils.cpp
   controller_utils.cpp
   node_thread.cpp
@@ -32,6 +29,10 @@ target_link_libraries(${library_name} PUBLIC
 )
 target_link_libraries(${library_name} PRIVATE
   ${bond_TARGETS}
+)
+target_include_directories(${library_name} PUBLIC
+  "$<BUILD_INTERFACE:${nav2_ros_common_INCLUDE_DIRS}>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
 
 add_executable(lifecycle_bringup
