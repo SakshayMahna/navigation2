@@ -204,14 +204,17 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
   std::vector<double> target_distances;
   computeDistanceAlongPath(transformed_plan.poses, target_distances);
 
-  for (int i = transformed_plan.poses.size(); i >= 0; --i) {
-    if (i == static_cast<int>(transformed_plan.poses.size())) {
+  bool is_first_iteration = true;
+  for (int i = transformed_plan.poses.size() - 1; i >= 0; --i) {
+    if (is_first_iteration) {
       // Calculate target pose through lookahead interpolation to get most accurate
       // lookahead point, if possible
       dist_to_target = params_->max_lookahead;
       // Interpolate after goal false for graceful controller
       // Requires interpolating the orientation which is not yet implemented
+      // Updates dist_to_target for target_pose returned if using the point on the path
       target_pose = nav2_util::getLookAheadPoint(dist_to_target, transformed_plan, false);
+      is_first_iteration = false;
     } else {
       // Underlying control law needs a single target pose, which should:
       //  * Be as far away as possible from the robot (for smoothness)

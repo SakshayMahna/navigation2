@@ -108,7 +108,7 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
 
       return interpolated_pose;
     } else {
-      lookahead_dist = d;
+      lookahead_dist = d;  // Updating lookahead distance since using the final point
       goal_pose_it = std::prev(transformed_plan.poses.end());
     }
   } else if (goal_pose_it != transformed_plan.poses.begin()) {
