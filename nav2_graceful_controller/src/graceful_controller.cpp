@@ -310,7 +310,7 @@ bool GracefulController::validateTargetPose(
   }
 
   // Actually simulate the path
-  if (simulateTrajectory(target_pose, costmap_transform, trajectory, cmd_vel, reversing)) {
+  if (simulateTrajectory(target_pose, dist_to_target, costmap_transform, trajectory, cmd_vel, reversing)) {
     // Successfully simulated to target_pose
     return true;
   }
@@ -321,6 +321,7 @@ bool GracefulController::validateTargetPose(
 
 bool GracefulController::simulateTrajectory(
   const geometry_msgs::msg::PoseStamped & motion_target,
+  const double & dist_to_target,
   const geometry_msgs::msg::TransformStamped & costmap_transform,
   nav_msgs::msg::Path & trajectory,
   geometry_msgs::msg::TwistStamped & cmd_vel,
@@ -372,12 +373,12 @@ bool GracefulController::simulateTrajectory(
       // If this is first iteration, this is our current target velocity
       if (trajectory.poses.empty()) {
         cmd_vel.twist = control_law_->calculateRegularVelocity(
-          motion_target.pose, next_pose.pose, backward);
+          motion_target.pose, next_pose.pose, dist_to_target, backward);
       }
 
       // Apply velocities to calculate next pose
       next_pose.pose = control_law_->calculateNextPose(
-        dt, motion_target.pose, next_pose.pose, backward);
+        dt, motion_target.pose, next_pose.pose, dist_to_target, backward);
     }
 
     // Add the pose to the trajectory for visualization

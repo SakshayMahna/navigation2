@@ -92,6 +92,12 @@ public:
   geometry_msgs::msg::Twist calculateRegularVelocity(
     const geometry_msgs::msg::Pose & target,
     const geometry_msgs::msg::Pose & current,
+    const double & dist_to_target,
+    const bool & backward = false);
+
+  geometry_msgs::msg::Twist calculateRegularVelocity(
+    const geometry_msgs::msg::Pose & target,
+    const geometry_msgs::msg::Pose & current,
     const bool & backward = false);
 
   /**
@@ -118,6 +124,7 @@ public:
     const double dt,
     const geometry_msgs::msg::Pose & target,
     const geometry_msgs::msg::Pose & current,
+    const double & dist_to_target,
     const bool & backward = false);
 
 protected:

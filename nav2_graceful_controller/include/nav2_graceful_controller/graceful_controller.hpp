@@ -138,6 +138,7 @@ protected:
    */
   bool simulateTrajectory(
     const geometry_msgs::msg::PoseStamped & motion_target,
+    const double & dist_to_target,
     const geometry_msgs::msg::TransformStamped & costmap_transform,
     nav_msgs::msg::Path & trajectory,
     geometry_msgs::msg::TwistStamped & cmd_vel,

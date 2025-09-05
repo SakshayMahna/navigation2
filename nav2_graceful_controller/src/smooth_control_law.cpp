@@ -90,6 +90,48 @@ geometry_msgs::msg::Twist SmoothControlLaw::calculateRegularVelocity(
 }
 
 geometry_msgs::msg::Twist SmoothControlLaw::calculateRegularVelocity(
+  const geometry_msgs::msg::Pose & target, const geometry_msgs::msg::Pose & current,
+  const double & dist_to_target, const bool & backward)
+{
+  // Convert the target to polar coordinates
+  auto ego_coords = EgocentricPolarCoordinates(target, current, backward);
+  // Calculate the curvature
+  double curvature = calculateCurvature(ego_coords.r, ego_coords.phi, ego_coords.delta);
+  // Invert the curvature if the robot is moving backwards
+  curvature = backward ? -curvature : curvature;
+
+  // Adjust the linear velocity as a function of the path curvature to
+  // slowdown the controller as it approaches its target
+  double v = v_linear_max_ / (1.0 + beta_ * std::pow(fabs(curvature), lambda_));
+
+  // Slowdown when the robot is near the target to remove singularity
+  // Choose the appropriate velocity based on slowdown radius and deceleration
+  double slowdown_radius_v = v_linear_max_ * (dist_to_target / slowdown_radius_);
+  double deceleration_v = sqrt(2 * dist_to_target * 2.0);
+  v = std::min(std::min(slowdown_radius_v, deceleration_v), v);
+
+  // Set some small v_min when far away from origin to promote faster
+  // turning motion when the curvature is very high
+  v = std::clamp(v, v_linear_min_, v_linear_max_);
+
+  // Set the velocity to negative if the robot is moving backwards
+  v = backward ? -v : v;
+
+  // Compute the angular velocity
+  double w = curvature * v;
+  // Bound angular velocity between [-max_angular_vel, max_angular_vel]
+  double w_bound = std::clamp(w, -v_angular_max_, v_angular_max_);
+  // And linear velocity to follow the curvature
+  v = (curvature != 0.0) ? (w_bound / curvature) : v;
+
+  // Return the velocity command
+  geometry_msgs::msg::Twist cmd_vel;
+  cmd_vel.linear.x = v;
+  cmd_vel.angular.z = w_bound;
+  return cmd_vel;
+}
+
+geometry_msgs::msg::Twist SmoothControlLaw::calculateRegularVelocity(
   const geometry_msgs::msg::Pose & target, const bool & backward)
 {
   return calculateRegularVelocity(target, geometry_msgs::msg::Pose(), backward);
@@ -99,9 +141,10 @@ geometry_msgs::msg::Pose SmoothControlLaw::calculateNextPose(
   const double dt,
   const geometry_msgs::msg::Pose & target,
   const geometry_msgs::msg::Pose & current,
+  const double & dist_to_target,
   const bool & backward)
 {
-  geometry_msgs::msg::Twist vel = calculateRegularVelocity(target, current, backward);
+  geometry_msgs::msg::Twist vel = calculateRegularVelocity(target, current, dist_to_target, backward);
   geometry_msgs::msg::Pose next;
   double yaw = tf2::getYaw(current.orientation);
   next.position.x = current.position.x + vel.linear.x * dt * cos(yaw);
