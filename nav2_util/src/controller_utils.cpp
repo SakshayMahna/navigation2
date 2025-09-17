@@ -128,7 +128,7 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
     double yaw = atan2(
       point.y - prev_pose_it->pose.position.y,
       point.x - prev_pose_it->pose.position.x);
-    
+
     // Path tangent vector (prev -> goal)
     double tx = goal_pose_it->pose.position.x - prev_pose_it->pose.position.x;
     double ty = goal_pose_it->pose.position.y - prev_pose_it->pose.position.y;
@@ -147,8 +147,8 @@ geometry_msgs::msg::PoseStamped getLookAheadPoint(
     }
 
     // Normalize yaw into [-pi, pi)
-    while (yaw <= -M_PI) yaw += 2.0 * M_PI;
-    while (yaw >  M_PI) yaw -= 2.0 * M_PI;
+    while (yaw <= -M_PI) {yaw += 2.0 * M_PI;}
+    while (yaw > M_PI) {yaw -= 2.0 * M_PI;}
 
     // Generate pose message
     geometry_msgs::msg::PoseStamped pose;
