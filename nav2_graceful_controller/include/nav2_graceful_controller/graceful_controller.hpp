@@ -222,6 +222,32 @@ protected:
     std::vector<double> & distances);
 
   /**
+   * @brief Build the reference path from the robot origin to the selected motion target
+   * using the currently transformed plan geometry.
+   * @param motion_target Target pose selected for simulation
+   * @param target_distance Integrated distance from robot to target pose
+   * @return Reference path ending at the motion target
+   */
+  nav_msgs::msg::Path buildReferencePathToTarget(
+    const geometry_msgs::msg::PoseStamped & motion_target,
+    const double target_distance) const;
+
+  /**
+   * @brief Compute the remaining distance on a reference path by projecting the pose
+   * onto the closest path segment at or after the provided start index.
+   * @param reference_path Path used as the distance reference
+   * @param pose Pose to project onto the path
+   * @param total_distance Total integrated distance of the reference path
+   * @param start_index Segment index to start the search from
+   * @return Remaining integrated distance on the reference path
+   */
+  double getRemainingPathDistance(
+    const nav_msgs::msg::Path & reference_path,
+    const geometry_msgs::msg::Pose & pose,
+    const double total_distance,
+    size_t & start_index) const;
+
+  /**
    * @brief Control law requires proper orientations, not all planners provide them
    * @param path Path to add orientations into, if required
    */
@@ -242,6 +268,7 @@ protected:
   bool do_initial_rotation_;
 
   std::optional<double> safe_approach_angle_;
+  nav_msgs::msg::Path transformed_plan_;
 
   nav2::Publisher<nav_msgs::msg::Path>::SharedPtr local_plan_pub_;
   nav2::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr motion_target_pub_;

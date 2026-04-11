@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <mutex>
+#include <iostream>
 
 #include "angles/angles.h"
 #include "nav2_core/controller_exceptions.hpp"
@@ -154,6 +155,7 @@ geometry_msgs::msg::TwistStamped GracefulController::computeVelocityCommands(
   control_law_->setSpeedLimit(params_->v_linear_min, params_->v_linear_max, params_->v_angular_max);
   // Add proper orientations to plan, if needed
   validateOrientations(transformed_plan.poses);
+  transformed_plan_ = transformed_plan;
 
   // Transform local frame to global frame to use in collision checking
   geometry_msgs::msg::TransformStamped costmap_transform;
@@ -385,6 +387,8 @@ bool GracefulController::simulateTrajectory(
   double path_distance = target_distance;
   double resolution = costmap_ros_->getCostmap()->getResolution();
   double dt = (params_->v_linear_max > 0.0) ? resolution / params_->v_linear_max : 0.0;
+  const auto reference_path = buildReferencePathToTarget(motion_target, target_distance);
+  size_t closest_segment_index = 0;
 
   // Set max iter to avoid infinite loop
   unsigned int max_iter = 3 *
@@ -415,16 +419,13 @@ bool GracefulController::simulateTrajectory(
           motion_target.pose, next_pose.pose, path_distance, backward);
       }
 
-      // Save previous pose before update
-      const auto prev_pose = next_pose;
-
       // Apply velocities to calculate next pose
       next_pose.pose = control_law_->calculateNextPose(
         dt, motion_target.pose, next_pose.pose, path_distance, backward);
 
-      // Adjust remaining path distance based on how far we moved
-      path_distance -= nav2_util::geometry_utils::euclidean_distance(
-        next_pose.pose.position, prev_pose.pose.position);
+      // Recompute remaining distance in the reference path space after each step.
+      path_distance = getRemainingPathDistance(
+        reference_path, next_pose.pose, target_distance, closest_segment_index);
     }
 
     // Add the pose to the trajectory for visualization
@@ -454,9 +455,88 @@ bool GracefulController::simulateTrajectory(
 
     // Check if we reach the goal
     distance = nav2_util::geometry_utils::euclidean_distance(motion_target.pose, next_pose.pose);
+    std::cout << "Distance to target: " << distance <<
+      " Path distance: " << path_distance <<
+      " Resolution: " << resolution <<
+      " Trajectory poses: " << trajectory.poses.size() <<
+      " Max iter: " << max_iter << std::endl;
   }while(distance > resolution && trajectory.poses.size() < max_iter);
 
   return true;
+}
+
+nav_msgs::msg::Path GracefulController::buildReferencePathToTarget(
+  const geometry_msgs::msg::PoseStamped & motion_target,
+  const double target_distance) const
+{
+  nav_msgs::msg::Path reference_path;
+  reference_path.header = transformed_plan_.header;
+
+  geometry_msgs::msg::PoseStamped robot_pose;
+  robot_pose.header.frame_id = costmap_ros_->getBaseFrameID();
+  robot_pose.pose.orientation.w = 1.0;
+  reference_path.poses.push_back(robot_pose);
+
+  double integrated_distance = 0.0;
+  auto previous_pose = robot_pose;
+
+  for (const auto & plan_pose : transformed_plan_.poses) {
+    const double segment_length = nav2_util::geometry_utils::euclidean_distance(
+      previous_pose.pose, plan_pose.pose);
+
+    if (integrated_distance + segment_length >= target_distance) {
+      break;
+    }
+
+    reference_path.poses.push_back(plan_pose);
+    integrated_distance += segment_length;
+    previous_pose = plan_pose;
+  }
+
+  if (nav2_util::geometry_utils::euclidean_distance(
+      reference_path.poses.back().pose, motion_target.pose) > 1e-6)
+  {
+    reference_path.poses.push_back(motion_target);
+  } else {
+    reference_path.poses.back() = motion_target;
+  }
+
+  return reference_path;
+}
+
+double GracefulController::getRemainingPathDistance(
+  const nav_msgs::msg::Path & reference_path,
+  const geometry_msgs::msg::Pose & pose,
+  const double total_distance,
+  size_t & start_index) const
+{
+  if (reference_path.poses.size() < 2) {
+    return 0.0;
+  }
+
+  const auto path_search_result = nav2_util::distance_from_path(reference_path, pose, start_index);
+  start_index = std::min(path_search_result.closest_segment_index, reference_path.poses.size() - 2);
+
+  double distance_along_path = 0.0;
+  for (size_t i = 0; i < start_index; ++i) {
+    distance_along_path += nav2_util::geometry_utils::euclidean_distance(
+      reference_path.poses[i].pose, reference_path.poses[i + 1].pose);
+  }
+
+  const auto & segment_start = reference_path.poses[start_index].pose.position;
+  const auto & segment_end = reference_path.poses[start_index + 1].pose.position;
+  const double dx = segment_end.x - segment_start.x;
+  const double dy = segment_end.y - segment_start.y;
+  const double segment_length_sq = (dx * dx) + (dy * dy);
+
+  if (segment_length_sq > 1e-9) {
+    const double projection = ((pose.position.x - segment_start.x) * dx) +
+      ((pose.position.y - segment_start.y) * dy);
+    const double interpolation = std::clamp(projection / segment_length_sq, 0.0, 1.0);
+    distance_along_path += std::sqrt(segment_length_sq) * interpolation;
+  }
+
+  return std::max(0.0, total_distance - distance_along_path);
 }
 
 geometry_msgs::msg::Twist GracefulController::rotateToTarget(double angle_to_target)
@@ -612,6 +692,9 @@ bool GracefulController::findBestApproachTrajectory(
         reversing = true;
       }
 
+      const auto reference_path = buildReferencePathToTarget(candidate_pose, dist_to_target);
+      size_t closest_segment_index = 0;
+
       // Distance to target for iteration loop
       double remaining_dist = dist_to_target;
 
@@ -631,7 +714,8 @@ bool GracefulController::findBestApproachTrajectory(
         double step_time = step_dist / speed;
         eta += step_time;
 
-        remaining_dist = std::max(0.0, remaining_dist - step_dist);
+        remaining_dist = getRemainingPathDistance(
+          reference_path, next_pose.pose, dist_to_target, closest_segment_index);
       }
 
       // Selection logic: Pick the fastest among the safe ones
